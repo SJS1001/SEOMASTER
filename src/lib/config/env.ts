@@ -15,7 +15,7 @@ const serverSchema = z.object({
   STRIPE_PRICE_BUSINESS: z.string().min(1),
   STRIPE_PRICE_SCALE: z.string().min(1),
   // Sentry (optional in dev)
-  NEXT_PUBLIC_SENTRY_DSN: z.string().url().optional(),
+  NEXT_PUBLIC_SENTRY_DSN: z.string().url().or(z.literal("")).optional(),
   // App
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
 });
