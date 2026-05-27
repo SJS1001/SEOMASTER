@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { getCurrentWorkspace } from "@/lib/workspace/get";
 import { createWorkspace } from "@/lib/workspace/create";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,8 @@ export default async function OnboardingPage() {
     const name = String(formData.get("name") ?? "").trim();
     if (!name) return;
     await createWorkspace(name);
+    // Invalidate the (app) layout so WorkspaceSwitcher re-fetches and shows the new workspace.
+    revalidatePath("/", "layout");
     redirect("/dashboard");
   }
 
