@@ -1,6 +1,7 @@
 import { serverEnv } from "@/lib/config/env";
 
-export type Tier = "solo" | "business" | "scale";
+export const TIERS = ["solo", "business", "scale"] as const;
+export type Tier = (typeof TIERS)[number];
 
 export const TIER_PRICE_IDS: Record<Tier, string> = {
   solo: serverEnv.STRIPE_PRICE_SOLO,
