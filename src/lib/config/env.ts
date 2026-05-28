@@ -14,6 +14,13 @@ const serverSchema = z.object({
   STRIPE_PRICE_SOLO: z.string().min(1),
   STRIPE_PRICE_BUSINESS: z.string().min(1),
   STRIPE_PRICE_SCALE: z.string().min(1),
+  // Google OAuth (connector layer)
+  GOOGLE_CLIENT_ID: z.string().min(1),
+  GOOGLE_CLIENT_SECRET: z.string().min(1),
+  // 32-byte base64 key for AES-256-GCM token encryption
+  CONNECTION_ENCRYPTION_KEY: z
+    .string()
+    .refine((v) => Buffer.from(v, "base64").length === 32, "must be 32 bytes (base64)"),
   // Sentry (optional in dev)
   NEXT_PUBLIC_SENTRY_DSN: z.string().url().or(z.literal("")).optional(),
   // App
