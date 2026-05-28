@@ -16,3 +16,51 @@ describe("google oauth url builder", () => {
     expect(scope).toContain("gmail.send");
   });
 });
+
+import { describe as describe2, it as it2, expect as expect2, vi, beforeEach } from "vitest";
+import { createClient } from "@supabase/supabase-js";
+import { saveGoogleConnection, getValidAccessToken, deleteConnection } from "@/lib/connectors/store";
+import * as oauth from "@/lib/connectors/google/oauth";
+
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const admin = createClient(SUPABASE_URL, SERVICE, { auth: { autoRefreshToken: false, persistSession: false } });
+
+describe2("connection store getValidAccessToken", () => {
+  let wsId: string;
+
+  beforeEach(async () => {
+    await admin.from("connections").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    await admin.from("workspaces").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { data: u } = await admin.auth.admin.createUser({
+      email: `store+${Date.now()}@test.local`, password: "pw-123456", email_confirm: true,
+    });
+    const { data: ws } = await admin
+      .from("workspaces").insert({ name: "Store Co", owner_id: u!.user!.id }).select("id").single();
+    wsId = ws!.id;
+  });
+
+  it2("returns the stored token when not expired", async () => {
+    await saveGoogleConnection(wsId, {
+      access_token: "valid-token", expires_in: 3600, refresh_token: "refresh-1",
+      scope: "openid", token_type: "Bearer",
+    }, "user@gmail.com");
+    const tok = await getValidAccessToken(wsId, "google");
+    expect2(tok).toBe("valid-token");
+  });
+
+  it2("refreshes when the access token is expired", async () => {
+    await saveGoogleConnection(wsId, {
+      access_token: "old-token", expires_in: -10, refresh_token: "refresh-1",
+      scope: "openid", token_type: "Bearer",
+    }, "user@gmail.com");
+    const spy = vi.spyOn(oauth, "refreshAccessToken").mockResolvedValue({
+      access_token: "new-token", expires_in: 3600, scope: "openid", token_type: "Bearer",
+    });
+    const tok = await getValidAccessToken(wsId, "google");
+    expect2(spy).toHaveBeenCalledWith("refresh-1");
+    expect2(tok).toBe("new-token");
+    spy.mockRestore();
+    await deleteConnection(wsId, "google");
+  });
+});
